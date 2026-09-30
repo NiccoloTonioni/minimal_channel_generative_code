@@ -15,7 +15,7 @@ from src.utils.utils import numpy_collate, load_dataset_metadata
 # Dataset class 
 #############################################################################
 class LatentSpaceDataset(Dataset):
-    def __init__(self, data_directory, mode='train', seed=42,
+    def __init__(self, data_directory, mode='train',
                  sequence_length=None, use_variance=False, return_teacher_forcing=True,
                  return_sensor_data=False, sensor_data_directory=None):
         """
@@ -123,13 +123,15 @@ def latent_data_loader(mode, root, batch_size, shuffle, drop_last,
     """
     Create PyTorch dataloaders that return Numpy arrays (via numpy_collate).
     No distributed sampler logic.
+    
+    Args:
+        seed (int): Run seed, controls the shuffle order of the data and the worker seeds.
     """
     
     # Create Dataset
     dataset = LatentSpaceDataset(
         data_directory=root,
         mode=mode,
-        seed=seed,
         sequence_length=sequence_length,
         use_variance=use_variance,
         return_teacher_forcing=return_teacher_forcing,
@@ -141,12 +143,17 @@ def latent_data_loader(mode, root, batch_size, shuffle, drop_last,
     def worker_init_fn(worker_id):
         worker_seed = seed + worker_id
         np.random.seed(worker_seed)
+        torch.manual_seed(worker_seed)
+
+    # Shuffle: follows the run seed
+    shuffle_gen = torch.Generator().manual_seed(seed) if shuffle else None
 
     # 3. Create DataLoader
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
+        generator=shuffle_gen,
         num_workers=num_workers,
         collate_fn=numpy_collate,
         worker_init_fn=worker_init_fn,

@@ -1,9 +1,0 @@
-# =============================================================================
-# TIME TRANSFORMER CONFIGURATION
-# =============================================================================
-EasyTimeTransformer.block_size = 128
-EasyTimeTransformer.n_layer = 4
-EasyTimeTransformer.n_heads = 4
-EasyTimeTransformer.n_embd = 64
-EasyTimeTransformer.use_bias = False
-EasyTimeTransformer.dropout_rate = 0.1

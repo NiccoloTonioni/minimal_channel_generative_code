@@ -1,0 +1,16 @@
+# =============================================================================
+# TIME TRANSFORMER CONFIGURATION
+# =============================================================================
+TimeTransformer.block_size = 128
+TimeTransformer.n_layer = 4
+TimeTransformer.n_heads = 4
+TimeTransformer.n_embd = 64
+TimeTransformer.use_bias = False
+TimeTransformer.dropout_rate = 0.1
+# =============================================================================
+# ATTENTION CONFIGURATION
+# =============================================================================
+TimeTransformer.attention_type = 'easy_attention'     # Options: 'self_attention', 'easy_attention', 'self_easy_attention'
+TimeTransformer.ea_sparse_offset = None               # Easy attention: None = dense alpha, int = banded alpha with this offset
+TimeTransformer.ea_init_alpha = 'xavier'              # Easy attention alpha init: 'eye', 'xavier', 'randn'
+TimeTransformer.ea_init_wv = 'randn'                  # Easy attention value projection init: 'xavier', 'randn'

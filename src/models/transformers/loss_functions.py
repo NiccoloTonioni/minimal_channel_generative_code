@@ -17,7 +17,8 @@ def get_raw_loss(predictions, targets, loss_type='mse'):
         linear = abs_diff - quadratic
         return 0.5 * quadratic ** 2 + delta * linear
     else:
-        raise ValueError(f"Unknown loss_type: {loss_type}. Use 'mse', 'mae', or 'huber'")
+        raise ValueError(f"Unknown loss_type: {loss_type}. Use 'mse', 'mae', or 'huber' "
+                         f"(or 'tw_mse', 'tw_mae', 'tw_huber' for time-weighted training loss)")
 
 
 def teacher_forcing_loss(predictions, targets, mask=None, loss_type='mse', reduce_batch=True):
@@ -53,6 +54,66 @@ def teacher_forcing_loss(predictions, targets, mask=None, loss_type='mse', reduc
             return jnp.mean(loss_per_step)
         else:
             return jnp.mean(loss_per_step, axis=-1) # -> (B,)
+
+
+def split_loss_type(loss_type):
+    """
+    Split a loss_type into (base_loss_type, is_time_weighted).
+    E.g. 'tw_mse' -> ('mse', True), 'mse' -> ('mse', False).
+    """
+    if loss_type.startswith('tw_'):
+        return loss_type[len('tw_'):], True
+    return loss_type, False
+
+
+def time_weighted_loss(predictions, targets, mask=None, loss_type='mse', delta=0.98):
+    """
+    Time-weighted teacher forcing loss: sum_tau delta^(T - tau) * l(pred_tau, target_tau).
+
+    T is the last valid position of each sample (taken from the mask, so it follows
+    the curriculum length). Assumes a prefix mask. The loss is normalised by the sum
+    of the weights, so delta=1 recovers teacher_forcing_loss.
+
+    Args:
+        predictions: Model output (B, T, C)
+        targets: Target sequences (B, T, C)
+        mask: Boolean attention mask (B, T)
+        loss_type: 'mse', 'mae', or 'huber' (step-wise loss metric)
+        delta: Temporal weighting factor in (0, 1]
+    """
+    loss = get_raw_loss(predictions, targets, loss_type)
+
+    # Average over channels -> (B, T)
+    loss_per_step = jnp.mean(loss, axis=-1)
+    B, T = loss_per_step.shape
+
+    if mask is None:
+        mask = jnp.ones((B, T))
+    mask = mask.astype(loss_per_step.dtype)
+
+    # Effective length per sample and 1-based time index
+    T_eff = jnp.sum(mask, axis=-1, keepdims=True)                     # (B, 1)
+    tau = jnp.arange(1, T + 1, dtype=loss_per_step.dtype)[None, :]    # (1, T)
+    weights = jnp.power(delta, T_eff - tau) * mask                    # zero past T_eff
+
+    return jnp.sum(weights * loss_per_step) / jnp.maximum(jnp.sum(weights), 1e-8)
+
+
+def training_loss(predictions, targets, mask=None, loss_type='mse', delta=0.98):
+    """
+    Dispatch to teacher_forcing_loss or time_weighted_loss depending on loss_type.
+
+    Args:
+        loss_type: 'mse', 'mae', 'huber', or their time-weighted versions
+                   'tw_mse', 'tw_mae', 'tw_huber'
+        delta: Temporal weighting factor, only used for time-weighted losses
+    """
+    base_loss_type, is_time_weighted = split_loss_type(loss_type)
+    if is_time_weighted:
+        return time_weighted_loss(predictions, targets, mask=mask,
+                                  loss_type=base_loss_type, delta=delta)
+    return teacher_forcing_loss(predictions, targets, mask=mask,
+                                loss_type=base_loss_type, reduce_batch=True)
 
 
 def per_timestep_loss(predictions, targets, mask=None, loss_type='mse'):

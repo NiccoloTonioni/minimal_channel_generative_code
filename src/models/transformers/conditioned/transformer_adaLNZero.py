@@ -1,7 +1,7 @@
 import flax.linen as nn
 import gin
 import jax.numpy as jnp
-import math
+from src.models.transformers.attention import build_attention
 
 ##############################################################################
 #                            SHARED ARCHITECTURES                            #
@@ -25,9 +25,23 @@ class TimeProjection(nn.Module):
     use_bias: bool
 
     def setup(self):
-        self.conv1 = nn.Conv(features=self.hidden_features, kernel_size=self.kernel_size, use_bias=self.use_bias)
-        self.conv2 = nn.Conv(features=self.out_features, kernel_size=2*self.kernel_size, use_bias=self.use_bias)
-        self.res_proj = nn.Conv(features=self.out_features, kernel_size=1, use_bias=self.use_bias)
+        self.conv1 = nn.Conv(
+            features=self.hidden_features, 
+            kernel_size=self.kernel_size, 
+            padding=[(self.kernel_size - 1, 0)], 
+            use_bias=self.use_bias
+        )
+        self.conv2 = nn.Conv(
+            features=self.out_features, 
+            kernel_size=2*self.kernel_size, 
+            padding=[(2*self.kernel_size - 1, 0)], 
+            use_bias=self.use_bias
+        )
+        self.res_proj = nn.Conv(
+            features=self.out_features, 
+            kernel_size=1, 
+            use_bias=self.use_bias
+        ) 
 
     def __call__(self, x):
         y = self.conv1(x)
@@ -52,53 +66,6 @@ class PositionalEncoding(nn.Module):
         pe = pe.at[:, 1::2].set(jnp.cos(position * div_term))
         pe = pe[jnp.newaxis, ...]  # Shape (1, max_len, embedding_dim)
         return x + pe[:, :x.shape[1], :]
-
-############################################################
-# Attention Mechanism 
-############################################################
-class CausalSelfAttention(nn.Module): 
-    n_embd: int
-    n_heads: int
-    use_bias: bool
-    dropout_rate: float
-
-    def setup(self):
-        self.c_attn = nn.Dense(features=3 * self.n_embd, use_bias=self.use_bias)
-        self.c_proj = nn.Dense(features=self.n_embd, use_bias=self.use_bias)
-        self.dropout = nn.Dropout(self.dropout_rate)
-
-    @nn.compact
-    def __call__(self, x, mask=None, deterministic=True): # <-- ADD MASK ARG
-        B, T, C = x.shape
-        q, k, v = jnp.split(self.c_attn(x), 3, axis=-1)
-
-        q = q.reshape(B, T, self.n_heads, C // self.n_heads).transpose(0, 2, 1, 3)
-        k = k.reshape(B, T, self.n_heads, C // self.n_heads).transpose(0, 2, 1, 3)
-        v = v.reshape(B, T, self.n_heads, C // self.n_heads).transpose(0, 2, 1, 3)
-
-        att = jnp.einsum('bhqd,bhkd->bhqk', q, k) / math.sqrt(k.shape[-1])
-        
-        # Base Causal Mask (Tokens can only attend to past/current tokens)
-        causal_mask = jnp.tril(jnp.ones((T, T), dtype=jnp.bool_))
-        
-        # Add Padding Mask for Curriculum Learning
-        if mask is not None:
-            # mask shape is (B, T) -> reshape to (B, 1, 1, T) to mask the keys
-            pad_mask = mask[:, None, None, :]
-            # Combine masks: Valid if causal AND not padded
-            valid_mask = causal_mask[None, None, :, :] & pad_mask
-        else:
-            valid_mask = causal_mask[None, None, :, :]
-            
-        # Apply mask
-        att = jnp.where(valid_mask, att, -jnp.inf)
-        att = nn.softmax(att, axis=-1)
-        att = self.dropout(att, deterministic=deterministic)
-
-        y = jnp.einsum('bhqk,bhvd->bhqd', att, v)
-        y = y.transpose(0, 2, 1, 3).reshape(B, T, C)
-        y = self.dropout(self.c_proj(y), deterministic=deterministic)
-        return y
 
 ############################################################
 # Feed Forward Network 
@@ -126,6 +93,9 @@ class AdaLNModulation(nn.Module):
     Each transformer block has its own AdaLNModulation network.
     Returns 6 values: (shift_attn, scale_attn, gate_attn,
                        shift_mlp, scale_mlp, gate_mlp)
+    
+    The output layer is zero-initialized (adaLN-Zero, DiT paper): at initialization
+    shift = scale = gate = 0, so every block starts as the identity function.
     """
     n_embd: int
     use_bias: bool = True
@@ -133,7 +103,12 @@ class AdaLNModulation(nn.Module):
     def setup(self):
         # Two-layer MLP for modulation (following DiT paper)
         self.linear1 = nn.Dense(self.n_embd, use_bias=self.use_bias)
-        self.linear2 = nn.Dense(6 * self.n_embd, use_bias=self.use_bias)
+        self.linear2 = nn.Dense(
+            6 * self.n_embd, 
+            use_bias=self.use_bias,
+            kernel_init=nn.initializers.zeros,
+            bias_init=nn.initializers.zeros
+        )
     
     def __call__(self, c):
         """
@@ -202,9 +177,14 @@ class BlockAdaLN(nn.Module):
     Following DiT paper: each block has its own modulation network.
     """
     n_embd: int
+    n_max_seq: int
     n_heads: int
     use_bias: bool
     dropout_rate: float
+    attention_type: str = 'self_attention'
+    ea_sparse_offset: int = None
+    ea_init_alpha: str = 'xavier'
+    ea_init_wv: str = 'randn'
 
     def setup(self):
         # Layer norms with adaptive modulation
@@ -212,11 +192,16 @@ class BlockAdaLN(nn.Module):
         self.adaln_mlp = AdaLN(use_bias=self.use_bias)
         
         # Attention and MLP
-        self.attn = CausalSelfAttention(
+        self.attn = build_attention(
+            attention_type=self.attention_type,
             n_embd=self.n_embd,  
             n_heads=self.n_heads,
+            n_max_seq=self.n_max_seq,
             use_bias=False,
-            dropout_rate=self.dropout_rate
+            dropout_rate=self.dropout_rate,
+            ea_sparse_offset=self.ea_sparse_offset,
+            ea_init_alpha=self.ea_init_alpha,
+            ea_init_wv=self.ea_init_wv
         )
         self.mlp = MLP(
             n_embd=self.n_embd, 
@@ -270,6 +255,10 @@ class TimeTransformerAdaLNZero(nn.Module):
         cond_dim: Dimension of conditioning signal after projection
         use_bias: Whether to use bias in linear layers
         dropout_rate: Dropout probability
+        attention_type: 'self_attention', 'easy_attention' or 'self_easy_attention'
+        ea_sparse_offset: Easy attention banded alpha offset (None = dense alpha)
+        ea_init_alpha: Easy attention alpha initialization ('eye', 'xavier', 'randn')
+        ea_init_wv: Easy attention value projection initialization ('xavier', 'randn')
         output_mode: How to return predictions:
             - "last_step": Single next step (B, C)
             - "full_sequence": All positions (B, T, C)
@@ -283,6 +272,10 @@ class TimeTransformerAdaLNZero(nn.Module):
     k_cond : int = 3
     use_bias: bool = False
     dropout_rate: float = 0.0
+    attention_type: str = 'self_attention'
+    ea_sparse_offset: int = None
+    ea_init_alpha: str = 'xavier'
+    ea_init_wv: str = 'randn'
     output_mode: str = "last_step"
 
     def setup(self):
@@ -309,9 +302,14 @@ class TimeTransformerAdaLNZero(nn.Module):
         self.h = [
             BlockAdaLN(
                 n_embd=self.n_embd, 
+                n_max_seq=self.block_size,
                 n_heads=self.n_heads, 
                 use_bias=self.use_bias, 
-                dropout_rate=self.dropout_rate
+                dropout_rate=self.dropout_rate,
+                attention_type=self.attention_type,
+                ea_sparse_offset=self.ea_sparse_offset,
+                ea_init_alpha=self.ea_init_alpha,
+                ea_init_wv=self.ea_init_wv
             ) for _ in range(self.n_layer)
         ]
         

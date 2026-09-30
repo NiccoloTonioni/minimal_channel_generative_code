@@ -19,7 +19,8 @@ import time
 # -- Summary Writer
 from torch.utils.tensorboard import SummaryWriter
 # -- Loss functions
-from src.models.transformers.loss_functions import teacher_forcing_loss, per_timestep_loss, per_channel_loss
+from src.models.transformers.loss_functions import (teacher_forcing_loss, training_loss, split_loss_type,
+                                                    per_timestep_loss, per_channel_loss)
 from src.trainers.transformers._helper_functions import get_curriculum_scheduler
 
 #################################################################################################
@@ -122,7 +123,8 @@ class ConditionedTrainerModuleTransformer:
                  gradient_clip=1.0,
                  weight_decay=0.01,
                  # Loss params
-                 loss_type='mse', 
+                 loss_type='mse',        # 'mse', 'mae', 'huber' or time-weighted 'tw_mse', 'tw_mae', 'tw_huber'
+                 time_weight_delta=0.98, # Temporal weighting factor delta in (0, 1], used only by 'tw_*' losses
                  # Curriculum params
                  curriculum_type=None, 
                  curriculum_min_length=4,
@@ -138,6 +140,9 @@ class ConditionedTrainerModuleTransformer:
                  ss_start_epoch=20,     # When to start mixing predictions
                  ss_max_ratio=0.5,      # Max prob of using model output (don't go to 1.0 for Transf)
                  ss_ramp_epochs=100,    # How long to ramp up to max_ratio
+                 # Input Noise Params
+                 use_input_noise=False, # Add Gaussian noise to the mixed input after scheduled sampling
+                 input_noise_std=0.01,  # Standard deviation sigma_n of the injected noise
                  # Debug and verify params
                  debug=False,
                  print_model_summary=True,
@@ -171,7 +176,12 @@ class ConditionedTrainerModuleTransformer:
         self.weight_decay = weight_decay
         
         # Loss params
+        if not 0.0 < time_weight_delta <= 1.0:
+            raise ValueError(f"time_weight_delta must be in (0, 1], got {time_weight_delta}")
         self.loss_type = loss_type
+        self.time_weight_delta = time_weight_delta
+        # Validation always uses the un-weighted base loss (e.g. 'tw_mse' -> 'mse')
+        self.eval_loss_type, _ = split_loss_type(loss_type)
         self.curriculum_type = curriculum_type
         self.curriculum_min_length = curriculum_min_length
         self.curriculum_schedule = curriculum_schedule
@@ -182,6 +192,10 @@ class ConditionedTrainerModuleTransformer:
         self.ss_start_epoch = ss_start_epoch
         self.ss_max_ratio = ss_max_ratio
         self.ss_ramp_epochs = ss_ramp_epochs
+
+        # Input Noise Params
+        self.use_input_noise = use_input_noise
+        self.input_noise_std = input_noise_std
         
         # Training params
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -227,7 +241,8 @@ class ConditionedTrainerModuleTransformer:
             f'nl_{self.transformer_model.n_layer}_'
             f'nh_{self.transformer_model.n_heads}_'
             f'ne_{self.transformer_model.n_embd}_'
-            f'cd_{self.transformer_model.cond_dim}'  # Add conditioning dimension
+            f'cd_{self.transformer_model.cond_dim}_'  # Add conditioning dimension
+            f'attn_{self.transformer_model.attention_type}'  # Attention mechanism
         )
         self.log_dir = log_dir
 
@@ -444,8 +459,8 @@ class ConditionedTrainerModuleTransformer:
                       sampling_ratio: float,  
                       key: jax.Array) -> Tuple[train_state.TrainState, float, Dict]:
             
-            # Split RNG keys for sampling
-            key, mix_key = jax.random.split(key)
+            # Split RNG keys for sampling and input noise
+            key, mix_key, noise_key = jax.random.split(key, 3)
              
             def loss_fn(params):
                 # Run model on Ground Truth to get "candidate" predictions
@@ -464,6 +479,8 @@ class ConditionedTrainerModuleTransformer:
                 # 1. Create a Bernoulli mask (1 = use Prediction, 0 = use Ground Truth)
                 B, T, C = input_seq.shape
                 swap_mask = jax.random.bernoulli(mix_key, p=sampling_ratio, shape=(B, T, 1))
+                # The first token has no previous prediction, always keep the Ground Truth
+                swap_mask = swap_mask.at[:, 0].set(False)
                 
                 # 2. Shift Predictions to align with Inputs
                 # Pred at index [t] corresponds to time [t+1]. 
@@ -473,6 +490,11 @@ class ConditionedTrainerModuleTransformer:
 
                 # 3. Create Mixed Input
                 mixed_input = jnp.where(swap_mask, shifted_preds, input_seq)
+
+                # 4. Add Gaussian noise to the mixed input (optional)
+                if self.use_input_noise:
+                    noise = jax.random.normal(noise_key, mixed_input.shape, dtype=mixed_input.dtype)
+                    mixed_input = mixed_input + self.input_noise_std * noise
 
                 # Actual forward pass with mixed input
                 predictions = state.apply_fn(
@@ -484,12 +506,12 @@ class ConditionedTrainerModuleTransformer:
                     rngs={'dropout': key}
                 )
                 
-                loss = teacher_forcing_loss(
+                loss = training_loss(
                     predictions, 
                     target_seq, 
                     mask=mask,                  
                     loss_type=self.loss_type,
-                    reduce_batch=True
+                    delta=self.time_weight_delta
                 )
                 return loss, predictions
             
@@ -520,7 +542,7 @@ class ConditionedTrainerModuleTransformer:
                 deterministic=True
             )
             
-            loss = teacher_forcing_loss(predictions, target_seq, mask=mask, loss_type=self.loss_type)
+            loss = teacher_forcing_loss(predictions, target_seq, mask=mask, loss_type=self.eval_loss_type)
             mae = teacher_forcing_loss(predictions, target_seq, loss_type='mae')
             per_t_loss = per_timestep_loss(predictions, target_seq, loss_type='mse')
             per_c_loss = per_channel_loss(predictions, target_seq, loss_type='mse')

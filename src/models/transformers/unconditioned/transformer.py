@@ -1,7 +1,7 @@
 import flax.linen as nn
 import gin
-import jax
 import jax.numpy as jnp
+from src.models.transformers.attention import build_attention
 
 ##############################################################################
 #                            SHARED ARCHITECTURES                            #
@@ -21,9 +21,24 @@ class TimeProjection(nn.Module):
     use_bias: bool
 
     def setup(self):
-        self.conv1 = nn.Conv(features=self.hidden_features, kernel_size=self.kernel_size, use_bias=self.use_bias)
-        self.conv2 = nn.Conv(features=self.out_features, kernel_size=2*self.kernel_size, use_bias=self.use_bias)
-        self.res_proj = nn.Conv(features=self.out_features, kernel_size=1, use_bias=self.use_bias)
+        # 1. THE LEAK FIX: Explicit CAUSAL padding
+        self.conv1 = nn.Conv(
+            features=self.hidden_features, 
+            kernel_size=self.kernel_size, 
+            padding=[(self.kernel_size - 1, 0)], 
+            use_bias=self.use_bias
+        )
+        self.conv2 = nn.Conv(
+            features=self.out_features, 
+            kernel_size=2*self.kernel_size, 
+            padding=[(2*self.kernel_size - 1, 0)], 
+            use_bias=self.use_bias
+        )
+        self.res_proj = nn.Conv(
+            features=self.out_features, 
+            kernel_size=1, 
+            use_bias=self.use_bias
+        ) 
 
     def __call__(self, x):
         y = self.conv1(x)
@@ -50,101 +65,6 @@ class PositionalEncoding(nn.Module):
         pe = pe[jnp.newaxis, ...]  
         return x + pe[:, :x.shape[1], :]
 
-
-############################################################
-# Attention Mechanism 
-############################################################
-class EasyAttn(nn.Module):
-    n_embd: int
-    n_max_seq: int
-    n_heads: int
-    dropout_rate: float
-    use_bias : bool
-    sparse_offset: int = None
-    init_alpha: str = "xavier"
-    init_wv: str = "randn"
-    
-    def setup(self):
-        wv_init = nn.initializers.xavier_uniform() if self.init_wv == "xavier" else nn.initializers.normal()
-        self.WV = self.param('WV', wv_init, (self.n_embd, self.n_embd))
-        
-        if self.sparse_offset is None:
-            self.Alpha = self._init_dense_alpha()
-        else:
-            self.diag_params = self._init_sparse_diags()
-        
-        self.c_proj = nn.Dense(features=self.n_embd, use_bias=self.use_bias)
-        self.dropout = nn.Dropout(self.dropout_rate)
-
-    def _init_dense_alpha(self):
-        if self.init_alpha == "eye":
-            def eye_init(_key, _shape):
-                return jnp.stack([jnp.eye(self.n_max_seq) for _ in range(self.n_heads)])
-            alpha_init = eye_init
-        elif self.init_alpha == "xavier":
-            alpha_init = nn.initializers.xavier_uniform()
-        else:
-            alpha_init = nn.initializers.normal()
-        return self.param('Alpha', alpha_init, (self.n_heads, self.n_max_seq, self.n_max_seq))
-    
-    def _init_sparse_diags(self):
-        diag_params = []
-        for i in range(self.sparse_offset + 1):
-            init_val = 1.0 - i * 0.1
-            diag_len = self.n_max_seq - i
-            diag_params.append(
-                self.param(f'diag_{i}', 
-                          lambda key, shape, val=init_val: jnp.ones(shape) * val,
-                          (self.n_heads, diag_len))
-            )
-        return diag_params
-    
-    def _assemble_sparse_alpha(self, T):
-        def build_head_matrix(head_idx):
-            matrix = jnp.zeros((T, T))  
-            for diag_idx, diag_param in enumerate(self.diag_params):
-                diag_vals = diag_param[head_idx, :T-diag_idx]  
-                if diag_idx == 0:
-                    matrix += jnp.diag(diag_vals, k=0)
-                else:
-                    matrix += jnp.diag(diag_vals, k=diag_idx) + jnp.diag(diag_vals, k=-diag_idx)
-            return matrix
-        return jax.vmap(build_head_matrix)(jnp.arange(self.n_heads))
-
-    def __call__(self, x, mask=None, deterministic=True): # <-- 2. ADD MASK ARGUMENT
-        B, T, C = x.shape
-
-        x = jnp.dot(x, self.WV.T)
-        x = x.reshape(B, self.n_heads, T, C // self.n_heads)
-
-        if self.sparse_offset is None:
-            Alpha = self.Alpha[:, :T, :T]
-        else:
-            Alpha = self._assemble_sparse_alpha(T)  
-
-        # Combine causal and padding masks
-        causal_mask = jnp.tril(jnp.ones((T, T), dtype=jnp.bool_))
-        
-        if mask is not None:
-            # mask shape (B, T) -> pad_mask shape (B, 1, 1, T_src)
-            pad_mask = mask[:, None, None, :]
-            valid_mask = causal_mask[None, None, :, :] & pad_mask
-        else:
-            valid_mask = causal_mask[None, None, :, :]
-
-        # Because EasyAttn doesn't use Softmax, we mask with 0.0 instead of -inf
-        Alpha_masked = jnp.where(valid_mask, Alpha[None, ...], 0.0)
-
-        # Einsum for batched data
-        # x: (B, H, T_src, HeadDim) -> bhsd
-        # Alpha_masked: (B, H, T_dest, T_src) -> bhts
-        # Output: (B, H, T_dest, HeadDim) -> bhtd
-        x = jnp.einsum('bhsd,bhts->bhtd', x, Alpha_masked)
-
-        x = x.reshape(B, T, C)
-        x = self.dropout(self.c_proj(x), deterministic=deterministic)
-
-        return x
 
 ############################################################
 # Feed Forward Network 
@@ -188,18 +108,25 @@ class Block(nn.Module):
     n_embd: int
     n_max_seq: int
     n_heads: int
-    sparse_offset: int
     use_bias: bool
     dropout_rate: float
+    attention_type: str = 'easy_attention'
+    ea_sparse_offset: int = None
+    ea_init_alpha: str = 'xavier'
+    ea_init_wv: str = 'randn'
 
     def setup(self):
         self.ln_1 = nn.LayerNorm(use_bias=self.use_bias)
-        self.attn = EasyAttn(n_embd=self.n_embd,  
-                            n_max_seq=self.n_max_seq,
+        self.attn = build_attention(
+                            attention_type=self.attention_type,
+                            n_embd=self.n_embd,  
                             n_heads=self.n_heads,
-                            dropout_rate=self.dropout_rate,
+                            n_max_seq=self.n_max_seq,
                             use_bias=self.use_bias,
-                            sparse_offset=self.sparse_offset, 
+                            dropout_rate=self.dropout_rate,
+                            ea_sparse_offset=self.ea_sparse_offset,
+                            ea_init_alpha=self.ea_init_alpha,
+                            ea_init_wv=self.ea_init_wv
                     )
         self.ln_2 = nn.LayerNorm(use_bias=self.use_bias)
         self.mlp = MLP(n_embd=self.n_embd, 
@@ -217,15 +144,27 @@ class Block(nn.Module):
 #                                    MODEL                                   #
 ##############################################################################
 @gin.configurable
-class EasyTimeTransformer(nn.Module): 
+class TimeTransformer(nn.Module): 
+    """
+    Transformer for time series forecasting (no conditioning).
+    
+    Args:
+        attention_type: 'self_attention', 'easy_attention' or 'self_easy_attention'
+        ea_sparse_offset: Easy attention banded alpha offset (None = dense alpha)
+        ea_init_alpha: Easy attention alpha initialization ('eye', 'xavier', 'randn')
+        ea_init_wv: Easy attention value projection initialization ('xavier', 'randn')
+    """
     block_size: int = 1000
     n_layer: int = 12   
     n_heads: int = 12
     n_embd: int = 12
     emb_kernel_size: int = 6
-    sparse_offset: int = None
     use_bias: bool = False
     dropout_rate: float = 0.0
+    attention_type: str = 'easy_attention'
+    ea_sparse_offset: int = None
+    ea_init_alpha: str = 'xavier'
+    ea_init_wv: str = 'randn'
     output_mode: str = "last_step"
 
     def setup(self):
@@ -239,9 +178,12 @@ class EasyTimeTransformer(nn.Module):
             Block(n_embd=self.n_embd,
                     n_max_seq=self.block_size, 
                     n_heads=self.n_heads, 
-                    sparse_offset=self.sparse_offset,
                     use_bias=self.use_bias, 
-                    dropout_rate=self.dropout_rate
+                    dropout_rate=self.dropout_rate,
+                    attention_type=self.attention_type,
+                    ea_sparse_offset=self.ea_sparse_offset,
+                    ea_init_alpha=self.ea_init_alpha,
+                    ea_init_wv=self.ea_init_wv
                     ) for _ in range(self.n_layer)
         ]
         self.ln_f = nn.LayerNorm(use_bias=self.use_bias) 
@@ -286,4 +228,4 @@ class EasyTimeTransformer(nn.Module):
 
     @classmethod
     def __name__(cls):
-        return "Transformer-Time-Forecaster-EasyAttention"
+        return "Transformer-Time-Forecaster"

@@ -22,7 +22,7 @@ latent_data_loader.batch_size = 32
 # =============================================================================
 # TRAINING FUNCTION CONFIGURATION
 # =============================================================================
-train_conditioned_transformer_with_ss.epochs = 2000
+train_conditioned_transformer.epochs = 2000
 
 # =============================================================================
 # TRAINER MODULE CONFIGURATION
@@ -58,6 +58,12 @@ ConditionedTrainerModuleTransformer.ss_max_ratio = 0.5           # Max fraction 
 ConditionedTrainerModuleTransformer.ss_ramp_epochs = 1000         # Number of epochs to reach max scheduled sampling ratio
 
 # =============================================================================
+# TRAINER INPUT NOISE CONFIGURATION (OPTIONAL)
+# =============================================================================
+ConditionedTrainerModuleTransformer.use_input_noise = False         # Add Gaussian noise to the input after scheduled sampling
+ConditionedTrainerModuleTransformer.input_noise_std = 0.01          # Standard deviation of the injected noise (sigma_n)
+
+# =============================================================================
 # OPTIMIZER PARAMETERS
 # =============================================================================
 # Transformer optimizer configuration
@@ -73,4 +79,6 @@ ConditionedTrainerModuleTransformer.weight_decay = 0.0
 # LOSS PARAMETERS 
 # =============================================================================
 # Loss type to use
-ConditionedTrainerModuleTransformer.loss_type = 'mse'  # Options: 'mse', 'mae', 'huber'
+ConditionedTrainerModuleTransformer.loss_type = 'mse'  # Options: 'mse', 'mae', 'huber' or time-weighted 'tw_mse', 'tw_mae', 'tw_huber'
+# Temporal weighting factor delta in (0, 1], used only by the 'tw_*' losses
+ConditionedTrainerModuleTransformer.time_weight_delta = 0.98

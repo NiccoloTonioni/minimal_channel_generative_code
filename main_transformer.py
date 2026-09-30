@@ -2,7 +2,7 @@ import os
 import jax
 import gin
 from src.data.latents_dataloader import latent_data_loader
-from src.models.transformers.unconditioned.easy_transformer import EasyTimeTransformer
+from src.models.transformers.unconditioned.transformer import TimeTransformer
 from src.models.transformers.conditioned.transformer_adaLNZero import TimeTransformerAdaLNZero
 from src.trainers.transformers import trainer_unconditioned
 from src.trainers.transformers import trainer_conditioned
@@ -51,8 +51,8 @@ def main_transformer(train: bool,
         print(f'Model selected: {model_type}')
         
     # Initialize the model
-    if model_type == 'easy_transformer':
-        model = EasyTimeTransformer(
+    if model_type == 'unconditioned_transformer':
+        model = TimeTransformer(
             output_mode='full_sequence' 
         )
         return_sensor = False
@@ -64,7 +64,7 @@ def main_transformer(train: bool,
     else:
         raise ValueError(
             f"Unknown model_type: {model_type}. "
-            f"Use 'easy_transformer' for the non-conditioned transformer or "
+            f"Use 'unconditioned_transformer' for the non-conditioned transformer or "
             f"'conditioned_adaLN_transformer' for AdaLN-Zero conditioning."
         )
     
@@ -102,7 +102,7 @@ def main_transformer(train: bool,
         )
 
         # Call conditioned transformer training function
-        if model_type == 'easy_transformer':
+        if model_type == 'unconditioned_transformer':
             trainer_unconditioned.train_transformer(
                 transformer_model=model,
                 trainer_loader=trainer_loader,
@@ -150,7 +150,7 @@ def main_transformer(train: bool,
                     length_initial_context=model.block_size,
                     rollout_window=rollout_window,
                 )
-        elif model_type == 'easy_transformer':
+        elif model_type == 'unconditioned_transformer':
             if rollout_window is None:
                 inference_unconditioned.save_full_latent_rollout(
                     transformer_model=model,

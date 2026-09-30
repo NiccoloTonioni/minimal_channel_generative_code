@@ -10,3 +10,11 @@ TimeTransformerAdaLNZero.n_embd = 64
 TimeTransformerAdaLNZero.n_heads = 4
 TimeTransformerAdaLNZero.n_layer = 4
 TimeTransformerAdaLNZero.use_bias = False
+
+# =============================================================================
+# ATTENTION CONFIGURATION
+# =============================================================================
+TimeTransformerAdaLNZero.attention_type = 'self_attention'   # Options: 'self_attention', 'easy_attention', 'self_easy_attention'
+TimeTransformerAdaLNZero.ea_sparse_offset = None             # Easy attention: None = dense alpha, int = banded alpha with this offset
+TimeTransformerAdaLNZero.ea_init_alpha = 'xavier'            # Easy attention alpha init: 'eye', 'xavier', 'randn'
+TimeTransformerAdaLNZero.ea_init_wv = 'randn'                # Easy attention value projection init: 'xavier', 'randn'
