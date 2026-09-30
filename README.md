@@ -15,38 +15,68 @@ The pipeline encodes high-fidelity DNS snapshots of a minimal turbulent channel 
 
 ```
 Main/
-├── main_autoencoder.py          # Entry point: VAE / VAE-GAN train + inference
-├── main_transformer.py          # Entry point: Transformer train + rollout
+├── main_autoencoder.py                  # Entry point: VAE / VAE-GAN train + inference
+├── main_transformer.py                  # Entry point: Transformer train + rollout
 ├── configs/
 │   └── base/
-│       ├── vae/                 # VAE gin configs
-│       ├── vae_gan/             # VAE-GAN gin configs
+│       ├── vae/                         # VAE gin configs
+│       │   ├── model_architecture.gin
+│       │   ├── base_train.gin
+│       │   └── base_inference.gin
+│       ├── vae_gan/                     # VAE-GAN gin configs
+│       │   ├── model_architecture.gin
+│       │   ├── base_train.gin
+│       │   └── base_inference.gin
 │       └── transformer/
-│           ├── conditioned/     # AdaLN-Zero conditioned transformer configs
-│           └── unconditioned/   # TimeTransformer (unconditioned) configs
+│           ├── conditioned/             # AdaLN-Zero conditioned transformer configs
+│           │   ├── adaLn_transformer_arch.gin
+│           │   ├── base_train.gin
+│           │   └── base_inference.gin
+│           └── unconditioned/           # TimeTransformer (unconditioned) configs
+│               ├── transformer_arch.gin
+│               ├── base_train.gin
+│               └── base_inference_unconditioned.gin
 ├── src/
 │   ├── data/
-│   │   ├── flow_dataloader.py   # Spatial-field dataloader (DNS snapshots)
-│   │   └── latents_dataloader.py # Latent-sequence dataloader
+│   │   ├── flow_dataloader.py           # Spatial-field dataloader (DNS snapshots)
+│   │   └── latents_dataloader.py        # Latent-sequence dataloader
 │   ├── models/
-│   │   ├── autoencoders/        # VAE and VAE-GAN architectures
+│   │   ├── autoencoders/
+│   │   │   ├── vae.py                   # VAE architecture
+│   │   │   └── vae_gan.py               # VAE-GAN architecture
 │   │   └── transformers/
-│   │       ├── conditioned/     # TimeTransformerAdaLNZero
-│   │       ├── unconditioned/   # TimeTransformer (transformer.py)
-│   │       ├── attention.py     # Self, easy and hybrid attention mechanisms
-│   │       └── loss_functions.py
+│   │       ├── attention.py             # Causal self, easy and self-easy attention
+│   │       ├── loss_functions.py        # Teacher-forcing and time-weighted training losses
+│   │       ├── conditioned/
+│   │       │   └── transformer_adaLNZero.py  # TimeTransformerAdaLNZero
+│   │       └── unconditioned/
+│   │           └── transformer.py       # TimeTransformer
 │   ├── trainers/
-│   │   ├── autoencoders/        # VAE and VAE-GAN trainers
-│   │   └── transformers/        # Conditioned and unconditioned trainers
+│   │   ├── autoencoders/
+│   │   │   ├── trainer_vae.py
+│   │   │   ├── trainer_vae_gan.py
+│   │   │   └── _helper_functions.py     # KL / adversarial weight schedulers
+│   │   └── transformers/
+│   │       ├── trainer_conditioned.py
+│   │       ├── trainer_unconditioned.py
+│   │       └── _helper_functions.py     # Curriculum schedulers, sequence truncation
 │   ├── inference/
-│   │   ├── autoencoders/        # Reconstruction helpers
-│   │   └── transformers/        # Rollout helpers (conditioned & unconditioned)
+│   │   ├── autoencoders/
+│   │   │   ├── inference_vae.py         # Reconstruction + latent encoding (VAE)
+│   │   │   └── inference_vae_gan.py     # Reconstruction + latent encoding (VAE-GAN)
+│   │   └── transformers/
+│   │       ├── inference_adaLNZero.py   # Conditioned autoregressive rollout
+│   │       └── inference_unconditioned.py  # Unconditioned autoregressive rollout
 │   └── utils/
-│       ├── utils.py             # Collation, device placement, scaling
-│       └── loss_functions.py    # Reconstruction and KL losses
-├── pretrained_models/           # Distributed checkpoints (VAE-GAN + Transformer)
-├── simple_runner_vae.sh         # Convenience runner for VAE experiments
-├── simple_runner_vae_gan.sh     # Convenience runner for VAE-GAN experiments
+│       ├── utils.py                     # Collation, device placement, scaling
+│       └── loss_functions.py            # Reconstruction, KL and evaluation metrics
+├── pretrained_models/
+│   ├── checkpoints_vae/                 # VAE, latent dims 2–12
+│   ├── checkpoints_vae_gan/             # VAE-GAN, latent dims 2–12
+│   └── checkpoints_transformer/         # Conditioned AdaLN-Zero transformer
+├── simple_runner_vae.sh                 # Convenience runner for VAE experiments
+├── simple_runner_vae_gan.sh             # Convenience runner for VAE-GAN experiments
+├── simple_runner_transformer.sh         # Convenience runner for transformer experiments (incl. seed sweep)
 ├── requirements.txt
 └── LICENSE
 ```
@@ -116,7 +146,7 @@ python main_transformer.py \
 
 ```bash
 python main_transformer.py \
-  --gin_config configs/base/transformer/unconditioned/base_inference.gin
+  --gin_config configs/base/transformer/unconditioned/base_inference_unconditioned.gin
 ```
 
 ### Override any hyperparameter from the command line
@@ -151,8 +181,8 @@ Pre-trained checkpoints are provided in `pretrained_models/`:
 
 | Path | Description |
 |---|---|
-| `pretrained_models/checkpoints_vae_gan/ld_4_fc_6_alfa_0.001_beta_0.001/` | VAE-GAN, latent dim 4 |
-| `pretrained_models/checkpoints_vae_gan/ld_8_fc_6_alfa_0.001_beta_0.001/` | VAE-GAN, latent dim 8 |
+| `pretrained_models/checkpoints_vae/ld_{2,4,6,8,10,12}_fc_6/` | VAE, latent dim 2–12 |
+| `pretrained_models/checkpoints_vae_gan/ld_{2,4,6,8,10,12}_fc_6_alfa_0.001_beta_0.001/` | VAE-GAN, latent dim 2–12 |
 | `pretrained_models/checkpoints_transformer/conditioned_adaLN_transformer/bs_128_nl_4_nh_4_ne_64_cd_18/` | AdaLN-Zero transformer |
 
 ---
@@ -160,7 +190,8 @@ Pre-trained checkpoints are provided in `pretrained_models/`:
 ## Monitoring with TensorBoard
 
 ```bash
-# VAE-GAN training
+# VAE / VAE-GAN training
+tensorboard --logdir pretrained_models/checkpoints_vae/
 tensorboard --logdir pretrained_models/checkpoints_vae_gan/
 
 # Transformer training
