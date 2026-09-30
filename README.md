@@ -23,7 +23,7 @@ Main/
 │       ├── vae_gan/             # VAE-GAN gin configs
 │       └── transformer/
 │           ├── conditioned/     # AdaLN-Zero conditioned transformer configs
-│           └── non_conditioned/ # EasyTimeTransformer (unconditioned) configs
+│           └── unconditioned/   # TimeTransformer (unconditioned) configs
 ├── src/
 │   ├── data/
 │   │   ├── flow_dataloader.py   # Spatial-field dataloader (DNS snapshots)
@@ -32,7 +32,8 @@ Main/
 │   │   ├── autoencoders/        # VAE and VAE-GAN architectures
 │   │   └── transformers/
 │   │       ├── conditioned/     # TimeTransformerAdaLNZero
-│   │       ├── non_conditioned/ # EasyTimeTransformer
+│   │       ├── unconditioned/   # TimeTransformer (transformer.py)
+│   │       ├── attention.py     # Self, easy and hybrid attention mechanisms
 │   │       └── loss_functions.py
 │   ├── trainers/
 │   │   ├── autoencoders/        # VAE and VAE-GAN trainers
@@ -108,14 +109,14 @@ python main_transformer.py \
 
 ```bash
 python main_transformer.py \
-  --gin_config configs/base/transformer/non_conditioned/base_train.gin
+  --gin_config configs/base/transformer/unconditioned/base_train.gin
 ```
 
 ### Stage 2 — Run an unconditioned autoregressive rollout
 
 ```bash
 python main_transformer.py \
-  --gin_config configs/base/transformer/non_conditioned/base_inference_unconditioned.gin
+  --gin_config configs/base/transformer/unconditioned/base_inference.gin
 ```
 
 ### Override any hyperparameter from the command line
@@ -138,7 +139,7 @@ Each config file composes a base architecture file with a task-specific (train/i
 | `configs/base/vae/model_architecture.gin` | VAE architecture |
 | `configs/base/vae_gan/model_architecture.gin` | VAE-GAN architecture |
 | `configs/base/transformer/conditioned/adaLn_transformer_arch.gin` | AdaLN-Zero transformer architecture |
-| `configs/base/transformer/non_conditioned/easy_transformer_arch.gin` | EasyTimeTransformer architecture |
+| `configs/base/transformer/unconditioned/transformer_arch.gin` | TimeTransformer architecture |
 
 **You must set `working_directory` to the absolute path of your local clone** in every config you run.
 
