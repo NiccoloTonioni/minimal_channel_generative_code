@@ -1,0 +1,16 @@
+# Base Configuration for  VAE-GAN Training 
+# This file configures the training for VAE with adversarial loss
+include "configs/base/transformer/conditioned/adaLn_transformer_arch.gin"
+
+# =============================================================================
+# MAIN FUNCTION CONFIGURATION
+# =============================================================================
+main_transformer.train = False
+main_transformer.save_rollout = True
+main_transformer.model_type = 'conditioned_adaLN_transformer'
+
+# Directories paths — set to the root of your local clone
+main_transformer.working_directory = '/path/to/your/project'
+main_transformer.latent_root_relative = 'src/data/datasets/latents/test'
+main_transformer.sensor_root_relative = 'src/data/datasets/sensors/test'
+main_transformer.checkpoint_dir_relative = 'pretrained_models/checkpoints_transformer/conditioned_adaLN_transformer'

@@ -1,0 +1,14 @@
+# =============================================================================
+# VAE GAN CONFIGURATION
+# =============================================================================
+VAE_GAN.latent_dim = 12
+VAE_GAN.filter_chn = 6
+VAE_GAN.activation_fn = @silu  # Use @ prefix for external configurables
+VAE_GAN.resize_method = 'lanczos3'  
+VAE_GAN.output_chn = 3
+
+# =============================================================================
+# DISCRIMINATOR CONFIGURATION
+# =============================================================================
+Discriminator.filter_chn = 6
+Discriminator.activation_fn = @relu

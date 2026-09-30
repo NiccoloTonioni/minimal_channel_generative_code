@@ -1,0 +1,73 @@
+# Base Configuration for VAE Training
+# This file contains the main training configuration, path settings, and dataloader parameters
+include "./configs/base/vae/model_architecture.gin"
+
+# =============================================================================
+# RUN SEED (for randomness)
+# =============================================================================
+SEED = 42
+
+# =============================================================================
+# MAIN FUNCTION CONFIGURATION
+# =============================================================================
+main_autoencoder.train = True
+main_autoencoder.save_reconstructions = False
+main_autoencoder.use_vae_gan = False  # Set to False for standard VAE training
+
+# Directories paths
+# Set to the root of your local clone
+main_autoencoder.working_directory = '/path/to/your/project''
+main_autoencoder.data_root_relative='src/data/datasets/flow'
+main_autoencoder.log_dir_relative='pretrained_models/checkpoints_vae'
+
+# =============================================================================
+# DATALOADER CONFIGURATION
+# =============================================================================
+data_loader.dataset_name = 'minimal_channel_flow'
+data_loader.batch_size = 32
+data_loader.seed = %SEED
+data_loader.split_seed = 42   # fixed across runs, do not change
+
+# =============================================================================
+# TRAINING FUNCTION CONFIGURATION
+# =============================================================================
+train_vae.epochs = 2000
+
+# =============================================================================
+# TRAINER MODULE CONFIGURATION
+# =============================================================================
+TrainerModuleVAE.seed = %SEED
+TrainerModuleVAE.load_checkpoint = False
+TrainerModuleVAE.async_checkpointing = True
+TrainerModuleVAE.debug = False
+TrainerModuleVAE.print_model_summary = False
+TrainerModuleVAE.verify_sharding = False
+
+# Training loop configuration
+TrainerModuleVAE.check_val_every_n_epochs = 10     
+TrainerModuleVAE.callbacks_every_n_epochs = 20      
+
+# Logging configuration
+TrainerModuleVAE.log_every_n_steps = 20
+TrainerModuleVAE.save_config = True
+
+
+# =============================================================================
+# OPTIMIZER PARAMETERS
+# =============================================================================
+TrainerModuleVAE.optimizer = @adam
+TrainerModuleVAE.learning_schedule = 'warmup_cosine_decay'
+TrainerModuleVAE.learning_rate = 1e-3
+TrainerModuleVAE.end_value = 1e-5
+TrainerModuleVAE.warmup_steps = 500
+TrainerModuleVAE.gradient_clip = 1.0
+TrainerModuleVAE.weight_decay = 0.0
+
+# =============================================================================
+# LOSS PARAMETERS (BETA SCHEDULING)
+# =============================================================================
+TrainerModuleVAE.beta_schedule = 'cyclic_linear'
+TrainerModuleVAE.beta_start_value = 0.0
+TrainerModuleVAE.beta_end_value = 1e-3
+TrainerModuleVAE.beta_n_cycles = 2
+TrainerModuleVAE.beta_warmup = 150

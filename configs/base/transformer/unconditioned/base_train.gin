@@ -1,0 +1,78 @@
+# Base Configuration for  VAE-GAN Training 
+# This file configures the training for VAE with adversarial loss
+include "configs/base/transformer/unconditioned/easy_transformer_arch.gin"
+
+# =============================================================================
+# MAIN FUNCTION CONFIGURATION
+# =============================================================================
+main_transformer.train = True
+main_transformer.save_rollout = False
+main_transformer.model_type = 'easy_transformer'
+# Directories paths — set to the root of your local clone
+main_transformer.working_directory = '/home/ntonioni/Channel_Flow/MinimalChannel/2D_Publication'
+main_transformer.latent_root_relative = 'src/data/datasets/latents'
+main_transformer.log_dir_relative = 'pretrained_models/checkpoints_transformer/'
+
+# =============================================================================
+# DATALOADER CONFIGURATION
+# =============================================================================
+latent_data_loader.batch_size = 32
+
+# =============================================================================
+# TRAINING FUNCTION CONFIGURATION
+# =============================================================================
+train_transformer.epochs = 2000
+
+# =============================================================================
+# TRAINER MODULE CONFIGURATION
+# =============================================================================
+# Fixed random seed for reproducibility
+UnconditionedTrainerModuleTransformer.seed = 42
+# Load from checkpoint? 
+UnconditionedTrainerModuleTransformer.load_checkpoint = False
+# Debugging and model summary
+UnconditionedTrainerModuleTransformer.debug = False
+UnconditionedTrainerModuleTransformer.print_model_summary = False
+UnconditionedTrainerModuleTransformer.verify_sharding = False
+# Training loop configuration
+UnconditionedTrainerModuleTransformer.check_val_every_n_epoch = 10
+UnconditionedTrainerModuleTransformer.callbacks_every_n_epochs = 50
+# Logging configuration
+UnconditionedTrainerModuleTransformer.save_config = True
+
+# =============================================================================
+# TRAINER CURRICULUM SCHEDULER CONFIGURATION (OPTIONAL)
+# =============================================================================
+# Fixed random seed for reproducibility
+UnconditionedTrainerModuleTransformer.curriculum_type = None          # Options: None, 'linear', 'exponential'
+UnconditionedTrainerModuleTransformer.curriculum_warmup_epochs = 500    # Number of epochs to wait before starting curriculum
+UnconditionedTrainerModuleTransformer.curriculum_min_length = 12        # Minimum sequence length for curriculum learning
+UnconditionedTrainerModuleTransformer.curriculum_schedule = None        # If step curriculum you have to provide a list of (epoch, length) tuples
+UnconditionedTrainerModuleTransformer.curriculum_growth_rate = 2.0      # Growth rate for exponential curriculum
+
+# =============================================================================
+# TRAINER SCHEDULED SAMPLING CONFIGURATION (OPTIONAL)
+# =============================================================================
+UnconditionedTrainerModuleTransformer.ss_start_epoch = 50          # Epoch to start scheduled sampling
+UnconditionedTrainerModuleTransformer.ss_max_ratio = 0.5           # Max fraction of predictions used as input (0–1)
+UnconditionedTrainerModuleTransformer.ss_ramp_epochs = 1000         # Number of epochs to reach max scheduled sampling ratio
+
+# =============================================================================
+# OPTIMIZER PARAMETERS
+# =============================================================================
+# Generator (VAE) optimizer configuration
+UnconditionedTrainerModuleTransformer.optimizer = @adam
+UnconditionedTrainerModuleTransformer.learning_rate = 3e-4
+UnconditionedTrainerModuleTransformer.learning_schedule = 'warmup_cosine_decay'
+UnconditionedTrainerModuleTransformer.warmup_steps = 500
+UnconditionedTrainerModuleTransformer.end_value = 2.5e-5
+UnconditionedTrainerModuleTransformer.gradient_clip = 1.0
+UnconditionedTrainerModuleTransformer.weight_decay = 0.0
+
+# =============================================================================
+# LOSS PARAMETERS (BETA SCHEDULING)
+# =============================================================================
+# Loss type to use
+UnconditionedTrainerModuleTransformer.loss_type = 'mse'  # Options: 'mse', 'mae', 'huber'
+
+

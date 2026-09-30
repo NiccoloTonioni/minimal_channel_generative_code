@@ -1,0 +1,12 @@
+# =============================================================================
+# ADALN CONDITIONED TIME TRANSFORMER CONFIGURATION
+# =============================================================================
+TimeTransformerAdaLNZero.block_size = 128
+TimeTransformerAdaLNZero.cond_dim = 18
+TimeTransformerAdaLNZero.dropout_rate = 0.1
+TimeTransformerAdaLNZero.k_cond = 3
+TimeTransformerAdaLNZero.k_emb = 3
+TimeTransformerAdaLNZero.n_embd = 64
+TimeTransformerAdaLNZero.n_heads = 4
+TimeTransformerAdaLNZero.n_layer = 4
+TimeTransformerAdaLNZero.use_bias = False

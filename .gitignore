@@ -1,0 +1,56 @@
+# Python byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Packaging / distribution
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# User-generated training checkpoints (not the distributed pretrained_models/)
+checkpoints/
+# Generated inference outputs inside pretrained_models
+pretrained_models/**/full_rollout_*/
+pretrained_models/**/reconstructions_*/
+
+# Dataset files
+src/data/dataset/
+src/data/datasets/
+*.npy
+*.npz
+*.h5
+*.hdf5
+
+# TensorBoard logs
+runs/
+logs/
+events.out.tfevents.*
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,17 @@
+# Core deep-learning stack
+jax[cuda12]>=0.4.25
+flax>=0.8.3
+optax>=0.2.2
+orbax-checkpoint>=0.5.10
+
+# Configuration management
+gin-config>=0.5.0
+
+# Data loading & visualisation (PyTorch CPU wheels are sufficient)
+torch>=2.2.0
+torchvision>=0.17.0
+tensorboard>=2.16.0
+
+# Numerics
+numpy>=1.26.0
+scipy>=1.13.0

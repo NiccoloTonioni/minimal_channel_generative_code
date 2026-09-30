@@ -1,0 +1,62 @@
+# Parameters for data_loader:
+# ==============================================================================
+data_loader.batch_size = 32
+data_loader.dataset_name = 'minimal_channel_flow'
+data_loader.seed = 42
+data_loader.train_val_split = 0.9
+data_loader.use_float16 = False
+
+# Parameters for main_autoencoder:
+# ==============================================================================
+main_autoencoder.data_root_relative = 'src/data/datasets/flow'
+main_autoencoder.log_dir_relative = 'pretrained_models/checkpoints_vae'
+main_autoencoder.save_reconstructions = False
+main_autoencoder.train = True
+main_autoencoder.use_vae_gan = False
+main_autoencoder.working_directory = \
+    '/lustre/fsn1/projects/rech/brp/ume68kh/MinimalChannel/2D/FlowModel'
+
+# Parameters for silu:
+# ==============================================================================
+# None.
+
+# Parameters for train_vae:
+# ==============================================================================
+train_vae.epochs = 2000
+
+# Parameters for TrainerModuleVAE:
+# ==============================================================================
+TrainerModuleVAE.async_checkpointing = True
+TrainerModuleVAE.base_log_dir = 'checkpoints/'
+TrainerModuleVAE.beta_end_value = 0.001
+TrainerModuleVAE.beta_freeze_epochs = 0
+TrainerModuleVAE.beta_n_cycles = 2
+TrainerModuleVAE.beta_schedule = 'cyclic_linear'
+TrainerModuleVAE.beta_start_value = 0.0
+TrainerModuleVAE.beta_warmup = 150
+TrainerModuleVAE.callbacks_every_n_epochs = 20
+TrainerModuleVAE.check_val_every_n_epochs = 10
+TrainerModuleVAE.debug = False
+TrainerModuleVAE.end_value = 1e-05
+TrainerModuleVAE.gradient_clip = 1.0
+TrainerModuleVAE.learning_rate = 0.001
+TrainerModuleVAE.learning_schedule = 'warmup_cosine_decay'
+TrainerModuleVAE.load_checkpoint = False
+TrainerModuleVAE.log_every_n_steps = 20
+TrainerModuleVAE.optimizer = @adam
+TrainerModuleVAE.optimizer_kwargs = {}
+TrainerModuleVAE.print_model_summary = False
+TrainerModuleVAE.save_config = True
+TrainerModuleVAE.seed = 42
+TrainerModuleVAE.verify_sharding = False
+TrainerModuleVAE.warmup_steps = 500
+TrainerModuleVAE.weight_decay = 0.0
+
+# Parameters for VAE:
+# ==============================================================================
+VAE.activation_fn = @silu
+VAE.filter_chn = 6
+VAE.latent_dim = 6
+VAE.name = None
+VAE.output_chn = 3
+VAE.resize_method = 'lanczos3'

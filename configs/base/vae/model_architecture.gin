@@ -1,0 +1,8 @@
+# =============================================================================
+# VAE CONFIGURATION
+# =============================================================================
+VAE.latent_dim = 12
+VAE.filter_chn = 6
+VAE.activation_fn = @silu  
+VAE.resize_method = 'lanczos3'  
+VAE.output_chn = 3
