@@ -1,4 +1,4 @@
-# Latent-Space Generative Modelling for Turbulent Channel Flow
+# A Hybrid Generative Reduced-Order Model for the Minimal Flow Unit
 
 JAX/Flax implementation of the two-stage generative framework described in:
 
@@ -88,7 +88,6 @@ Main/
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
-cd Main
 
 # 2. Create a virtual environment (recommended)
 python -m venv .venv && source .venv/bin/activate

@@ -3,6 +3,11 @@
 include "configs/base/transformer/conditioned/adaLn_transformer_arch.gin"
 
 # =============================================================================
+# RUN SEED (for randomness)
+# =============================================================================
+SEED = 42
+
+# =============================================================================
 # MAIN FUNCTION CONFIGURATION
 # =============================================================================
 main_transformer.train = True
@@ -18,6 +23,7 @@ main_transformer.log_dir_relative='pretrained_models/checkpoints_transformer/'
 # DATALOADER CONFIGURATION
 # =============================================================================
 latent_data_loader.batch_size = 32
+latent_data_loader.seed = %SEED
 
 # =============================================================================
 # TRAINING FUNCTION CONFIGURATION
@@ -27,8 +33,8 @@ train_conditioned_transformer.epochs = 2000
 # =============================================================================
 # TRAINER MODULE CONFIGURATION
 # =============================================================================
-# Fixed random seed for reproducibility
-ConditionedTrainerModuleTransformer.seed = 42
+# Run seed (set by the SEED macro above)
+ConditionedTrainerModuleTransformer.seed = %SEED
 # Load from checkpoint? 
 ConditionedTrainerModuleTransformer.load_checkpoint = False
 # Debugging and model summary

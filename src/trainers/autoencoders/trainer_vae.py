@@ -409,7 +409,8 @@ class TrainerModuleVAE:
                 key,
                 x,
                 self.model.apply,
-                beta_loss
+                beta_loss,
+                deterministic=True,
             )
 
         return train_step, eval_step

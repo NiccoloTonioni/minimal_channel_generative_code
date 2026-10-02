@@ -78,7 +78,6 @@ def main_transformer(train: bool,
         trainer_loader = latent_data_loader(
             mode='train',
             root=latent_root,
-            batch_size=16,
             sequence_length=model.block_size, 
             shuffle=True,
             drop_last=True,

@@ -242,7 +242,8 @@ class ConditionedTrainerModuleTransformer:
             f'nh_{self.transformer_model.n_heads}_'
             f'ne_{self.transformer_model.n_embd}_'
             f'cd_{self.transformer_model.cond_dim}_'  # Add conditioning dimension
-            f'attn_{self.transformer_model.attention_type}'  # Attention mechanism
+            f'attn_{self.transformer_model.attention_type}_'  # Attention mechanism
+            f'sd_{self.seed}'  # Run seed
         )
         self.log_dir = log_dir
 
