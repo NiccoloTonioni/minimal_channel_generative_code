@@ -1,3 +1,7 @@
+"""
+Inference with a trained unconditioned Transformer: loading of the best checkpoint and autoregressive
+rollout of the latent dynamics.
+"""
 import os
 import time
 import numpy as np

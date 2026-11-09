@@ -1,3 +1,6 @@
+"""
+Utilities: batch collation, dataset metadata, device placement of JAX batches and tensor scaling.
+"""
 # This script contains all the utility functions used in the project.
 # The functions are divided into the following categories:
 # 1. Functions to convert from numpy/jax to torch and back

@@ -1,3 +1,7 @@
+"""
+Attention mechanisms of the Transformers: causal self-attention (SA), easy-attention (EA) and their
+parallel combination (SA+EA), selected with build_attention.
+"""
 import flax.linen as nn
 import jax
 import jax.numpy as jnp

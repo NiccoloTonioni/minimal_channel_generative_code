@@ -1,0 +1,49 @@
+# Configuration for the reproduction of the figures and tables of the paper (main_postprocessing.py)
+# Replace the path/to/... placeholders with the run directories of your trained models.
+# A result whose inputs are missing is skipped.
+
+# =============================================================================
+# RESULTS TO REPRODUCE
+# =============================================================================
+# 'all' or a list of: 'fig06_fig07', 'table3', 'fig08_fig09', 'fig10_fig16', 'fig11_fig12',
+#                     'fig13', 'table4_fig14', 'fig15'
+main_postprocessing.results = 'all'
+
+# =============================================================================
+# DIRECTORIES (relative to the repository root)
+# =============================================================================
+main_postprocessing.working_directory = '.'
+main_postprocessing.flow_dir_relative = 'src/data/datasets/flow'          # full DNS test set needed for most results
+main_postprocessing.latent_dir_relative = 'src/data/datasets/latents'
+main_postprocessing.output_dir_relative = 'results'
+
+# -- Compression study (Figs. 6, 7): run directories of the trained autoencoders for d_zeta = 2, 4, ..., 12,
+#    with a {ld} placeholder for the latent dimension; each must contain the test-set reconstructions
+#    (reconstructions_epoch_*/, written by main_autoencoder.py with base_inference.gin).
+#    The training writes them to checkpoints/vae/ld_{ld}_fc_6_sd_<seed> and
+#    checkpoints/vae_gan/ld_{ld}_fc_6_gamma_0.001_beta_0.001_sd_<seed>
+main_postprocessing.autoencoder_runs = {
+    'vae': 'path/to/vae_run_ld_{ld}',
+    'vae_gan': 'path/to/vae_gan_run_ld_{ld}',
+}
+# POD baseline, computed from the DNS training run (basis) and test run (projection)
+main_postprocessing.include_pod = True
+
+# -- Latent forecasting (Table 3, Figs. 8, 9): run directories of the Transformer variants; each must contain
+#    the test-set rollout (full_rollout_epoch_*/predicted_latents.npy, written by main_transformer.py with
+#    base_inference.gin), or directly a predicted_latents.npy. See simple_runner_transformer.sh for the
+#    settings and run names of the variants.
+main_postprocessing.paper_models = {
+    'SA':     'path/to/transformer_run_SA',
+    'EA':     'path/to/transformer_run_EA',
+    'EA*':    'path/to/transformer_run_EA_star',
+    'SA+EA':  'path/to/transformer_run_SA_EA',
+    'SA+EA*': 'path/to/transformer_run_SA_EA_star',
+}
+main_postprocessing.selected_model = 'EA*'
+
+# -- End-to-end inference (Figs. 10, 13-16, Table 4)
+# Run directory of the beta-VAE-GAN baseline (d_zeta = 4) with its test-set reconstructions
+main_postprocessing.baseline_run_relative = 'path/to/vae_gan_run'
+# Decoded rollout written by main_predictive_framework.py
+main_postprocessing.predicted_fields_relative = 'results/predictive_framework/predicted_fields.npy'

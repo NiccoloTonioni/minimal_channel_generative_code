@@ -1,3 +1,7 @@
+"""
+Forecasting losses of the Transformers: step-wise MSE / MAE / Huber losses, the time-weighted loss of
+Eq. (24) (`tw_*` loss types) and per-time-step / per-channel diagnostics.
+"""
 import jax.numpy as jnp
 
 ##############################################################################

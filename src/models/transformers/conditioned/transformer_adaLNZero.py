@@ -1,3 +1,7 @@
+"""
+Sensor-conditioned Transformer of the latent dynamics. The sensor signals modulate every block through
+adaptive layer normalisation with zero initialisation (AdaLN-Zero).
+"""
 import flax.linen as nn
 import gin
 import jax.numpy as jnp

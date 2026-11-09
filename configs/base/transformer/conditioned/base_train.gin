@@ -1,5 +1,7 @@
-# Base Configuration for  VAE-GAN Training 
-# This file configures the training for VAE with adversarial loss
+# Base Configuration for Conditioned (AdaLN-Zero) Transformer Training
+# Sensor-conditioned latent dynamics model.
+# The defaults train EA* of the paper: easy-attention, time-weighted loss (Eq. 24) and input-noise injection (Eq. 25).
+# The other variants of Table 3 are trained with `./simple_runner_transformer.sh train_paper_models`.
 include "configs/base/transformer/conditioned/adaLn_transformer_arch.gin"
 
 # =============================================================================
@@ -13,11 +15,11 @@ SEED = 42
 main_transformer.train = True
 main_transformer.save_rollout = False
 main_transformer.model_type = 'conditioned_adaLN_transformer'
-# Directories paths — set to the root of your local clone
-main_transformer.working_directory = '/path/to/your/project'
+# Directories paths (relative to the repository root)
+main_transformer.working_directory = '.'   # repository root; run the scripts from here
 main_transformer.latent_root_relative='src/data/datasets/latents'
 main_transformer.sensor_root_relative='src/data/datasets/sensors'
-main_transformer.log_dir_relative='pretrained_models/checkpoints_transformer/'
+main_transformer.log_dir_relative='checkpoints/transformer/'
 
 # =============================================================================
 # DATALOADER CONFIGURATION
@@ -42,7 +44,7 @@ ConditionedTrainerModuleTransformer.debug = False
 ConditionedTrainerModuleTransformer.print_model_summary = False
 ConditionedTrainerModuleTransformer.verify_sharding = False
 # Training loop configuration
-ConditionedTrainerModuleTransformer.check_val_every_n_epoch = 10
+ConditionedTrainerModuleTransformer.check_val_every_n_epoch = 20
 ConditionedTrainerModuleTransformer.callbacks_every_n_epochs = 50
 # Logging configuration
 ConditionedTrainerModuleTransformer.save_config = True
@@ -66,7 +68,7 @@ ConditionedTrainerModuleTransformer.ss_ramp_epochs = 1000         # Number of ep
 # =============================================================================
 # TRAINER INPUT NOISE CONFIGURATION (OPTIONAL)
 # =============================================================================
-ConditionedTrainerModuleTransformer.use_input_noise = False         # Add Gaussian noise to the input after scheduled sampling
+ConditionedTrainerModuleTransformer.use_input_noise = True          # Add Gaussian noise to the input after scheduled sampling
 ConditionedTrainerModuleTransformer.input_noise_std = 0.01          # Standard deviation of the injected noise (sigma_n)
 
 # =============================================================================
@@ -85,6 +87,6 @@ ConditionedTrainerModuleTransformer.weight_decay = 0.0
 # LOSS PARAMETERS 
 # =============================================================================
 # Loss type to use
-ConditionedTrainerModuleTransformer.loss_type = 'mse'  # Options: 'mse', 'mae', 'huber' or time-weighted 'tw_mse', 'tw_mae', 'tw_huber'
+ConditionedTrainerModuleTransformer.loss_type = 'tw_mse'  # Options: 'mse', 'mae', 'huber' or time-weighted 'tw_mse', 'tw_mae', 'tw_huber'
 # Temporal weighting factor delta in (0, 1], used only by the 'tw_*' losses
 ConditionedTrainerModuleTransformer.time_weight_delta = 0.98

@@ -1,3 +1,6 @@
+"""
+Schedulers of the loss weights (beta, gamma) used during the autoencoder training.
+"""
 # This script contains the scheduler that can be used in VAE trainer to control the beta parameter.
 import numpy as np
 

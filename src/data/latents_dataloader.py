@@ -1,3 +1,9 @@
+"""
+Dataset and dataloader of the encoded latent sequences and sensor signals (Transformer training).
+
+Returns windows of `sequence_length` latent states with their teacher-forcing targets and, for the
+conditioned model, the corresponding sensor signals.
+"""
 # -- Directories search 
 import os
 # -- Numpy

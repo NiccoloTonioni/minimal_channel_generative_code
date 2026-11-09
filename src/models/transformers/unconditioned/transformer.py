@@ -1,3 +1,6 @@
+"""
+Transformer of the latent dynamics without sensor conditioning.
+"""
 import flax.linen as nn
 import gin
 import jax.numpy as jnp

@@ -10,10 +10,12 @@ main_autoencoder.save_reconstructions = True
 main_autoencoder.use_vae_gan = True  # Set to False for standard VAE inference
 
 # Directories paths
-# Set to the root of your local clone
-main_autoencoder.working_directory = '/path/to/your/project'
+# Paths are relative to the repository root
+main_autoencoder.working_directory = '.'   # repository root; run the scripts from here
 main_autoencoder.data_root_relative='src/data/datasets/flow'
-main_autoencoder.log_dir_relative='pretrained_models/checkpoints_vae_gan/ld_12_fc_6_alfa_0.001_beta_0.001' #Example
+# Run directory of a trained beta-VAE-GAN (contains best_model_params/). The training writes it to
+# checkpoints/vae_gan/ld_<d_zeta>_fc_6_gamma_0.001_beta_0.001_sd_<seed>; d_zeta = 4 is the model used in the paper
+main_autoencoder.log_dir_relative='path/to/vae_gan_run'
 
 # =============================================================================
 # DATALOADER CONFIGURATION

@@ -1,5 +1,5 @@
-# Base Configuration for  VAE-GAN Training 
-# This file configures the training for VAE with adversarial loss
+# Base Configuration for Conditioned (AdaLN-Zero) Transformer Inference
+# Sensor-conditioned autoregressive rollout of the latent dynamics
 include "configs/base/transformer/conditioned/adaLn_transformer_arch.gin"
 
 # =============================================================================
@@ -9,8 +9,11 @@ main_transformer.train = False
 main_transformer.save_rollout = True
 main_transformer.model_type = 'conditioned_adaLN_transformer'
 
-# Directories paths — set to the root of your local clone
-main_transformer.working_directory = '/path/to/your/project'
-main_transformer.latent_root_relative = 'src/data/datasets/latents/test'
-main_transformer.sensor_root_relative = 'src/data/datasets/sensors/test'
-main_transformer.checkpoint_dir_relative = 'pretrained_models/checkpoints_transformer/conditioned_adaLN_transformer'
+# Directories paths (relative to the repository root)
+main_transformer.working_directory = '.'   # repository root; run the scripts from here
+main_transformer.latent_root_relative = 'src/data/datasets/latents'   # the rollout uses the test/ split
+main_transformer.sensor_root_relative = 'src/data/datasets/sensors'
+# Run directory of a trained conditioned Transformer (contains best_model_params/). The training writes it to
+# checkpoints/transformer/conditioned_adaLN_transformer/bs_128_nl_4_nh_4_ne_64_cd_18_attn_<attention>_loss_<loss>[_noise_<std>]_sd_<seed>,
+# e.g. ..._attn_easy_attention_loss_tw_mse_noise_0.01_sd_42 for EA* (base_train.gin)
+main_transformer.checkpoint_dir_relative = 'path/to/transformer_run'

@@ -1,3 +1,8 @@
+"""
+Dataset and dataloader of the DNS velocity fields (autoencoder training and inference).
+
+The snapshots of the first run are split randomly into training / validation; the second run is the test set.
+"""
 # -- Directories search 
 import glob
 import os

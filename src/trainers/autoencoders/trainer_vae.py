@@ -1,3 +1,7 @@
+"""
+Training loop of the beta-VAE (JAX SPMD): optimisation, validation, checkpointing of the best model and
+TensorBoard logging.
+"""
 import os
 import json
 import numpy as np

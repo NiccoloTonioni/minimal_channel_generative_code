@@ -1,0 +1,17 @@
+# Base Configuration for Unconditioned Transformer Inference
+# Autoregressive rollout of the latent dynamics without sensor conditioning
+include "configs/base/transformer/unconditioned/transformer_arch.gin"
+
+# =============================================================================
+# MAIN FUNCTION CONFIGURATION
+# =============================================================================
+main_transformer.train = False
+main_transformer.save_rollout = True
+main_transformer.model_type = 'unconditioned_transformer'
+
+# Directories paths (relative to the repository root)
+main_transformer.working_directory = '.'   # repository root; run the scripts from here
+main_transformer.latent_root_relative = 'src/data/datasets/latents'   # the rollout uses the test/ split
+# Run directory of a trained unconditioned Transformer (contains best_model_params/). The training writes it to
+# checkpoints/transformer/unconditioned_transformer/bs_128_nl_4_nh_4_ne_64_attn_<attention>_loss_<loss>[_noise_<std>]_sd_<seed>
+main_transformer.checkpoint_dir_relative = 'path/to/transformer_run'

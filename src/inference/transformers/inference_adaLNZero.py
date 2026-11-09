@@ -1,3 +1,7 @@
+"""
+Inference with a trained sensor-conditioned (AdaLN-Zero) Transformer: loading of the best checkpoint and
+autoregressive rollout of the latent dynamics driven by the sensor signals.
+"""
 import os
 import numpy as np
 from typing import Tuple

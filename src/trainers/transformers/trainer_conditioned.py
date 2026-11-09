@@ -1,3 +1,7 @@
+"""
+Training loop of the sensor-conditioned Transformer: teacher forcing with scheduled sampling, optional
+time-weighted loss (Eq. 24) and input-noise injection (Eq. 25), validation, checkpointing and logging.
+"""
 import os
 import numpy as np
 from typing import Tuple, Dict
@@ -243,7 +247,9 @@ class ConditionedTrainerModuleTransformer:
             f'ne_{self.transformer_model.n_embd}_'
             f'cd_{self.transformer_model.cond_dim}_'  # Add conditioning dimension
             f'attn_{self.transformer_model.attention_type}_'  # Attention mechanism
-            f'sd_{self.seed}'  # Run seed
+            f'loss_{self.loss_type}_'  # Training loss ('tw_*' = time-weighted)
+            + (f'noise_{self.input_noise_std}_' if self.use_input_noise else '')  # Input-noise injection
+            + f'sd_{self.seed}'  # Run seed
         )
         self.log_dir = log_dir
 

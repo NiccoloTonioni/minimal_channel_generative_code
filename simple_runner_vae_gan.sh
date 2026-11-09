@@ -1,88 +1,65 @@
 #!/bin/bash
-# Convenient scripts for running different experiments
+# Convenience runner for the beta-VAE-GAN experiments. Run from the repository root.
+# Runs are written to checkpoints/vae_gan/<run_name>, with <run_name> = ld_${latent_dim}_fc_6_gamma_0.001_beta_0.001_sd_${seed}
 
-# Full training
-# pass two config files: base + model architecture
+TRAIN_CONFIG="./configs/base/vae_gan/base_train.gin"
+INFERENCE_CONFIG="./configs/base/vae_gan/base_inference.gin"
+LATENT_DIMS="2 4 6 8 10 12"
+
+# Training with the base configuration (d_zeta = 4, seed 42)
 train() {
-    echo "Running full training..."
-    python main_autoencoder.py --gin_config "./configs/base/vae_gan/base_train.gin" 
+    python main_autoencoder.py --gin_config "$TRAIN_CONFIG"
 }
-# Inference only (test set)
+
+# Test-set reconstructions with a trained run (default: the run written by `train`)
 inference() {
-    echo "Running inference on test set..."
-    python main_autoencoder.py --gin_config="./configs/base/vae_gan/base_inference.gin"
+    local run_dir=${1:-checkpoints/vae_gan/ld_4_fc_6_gamma_0.001_beta_0.001_sd_42}
+    python main_autoencoder.py --gin_config "$INFERENCE_CONFIG" \
+        --gin_params "main_autoencoder.log_dir_relative='$run_dir'"
 }
 
-# Custom run with overrides
+# Training for every latent dimension of the compression study (Fig. 6, 7)
+train_latent_dims() {
+    local seed=${1:-42}
+    for latent_dim in $LATENT_DIMS; do
+        echo "=== Training vae_gan: latent_dim=$latent_dim, seed=$seed"
+        python main_autoencoder.py --gin_config "$TRAIN_CONFIG" \
+            --gin_params "VAE_GAN.latent_dim=$latent_dim" "SEED=$seed"
+    done
+}
+
+# Test-set reconstructions for every latent dimension (inputs of main_postprocessing.py, Fig. 6, 7)
+inference_latent_dims() {
+    local seed=${1:-42}
+    for latent_dim in $LATENT_DIMS; do
+        echo "=== Reconstructing the test set with vae_gan: latent_dim=$latent_dim, seed=$seed"
+        python main_autoencoder.py --gin_config "$INFERENCE_CONFIG" \
+            --gin_params "VAE_GAN.latent_dim=$latent_dim" \
+                         "main_autoencoder.log_dir_relative='checkpoints/vae_gan/ld_${latent_dim}_fc_6_gamma_0.001_beta_0.001_sd_${seed}'"
+    done
+}
+
+# Training with gin overrides
 custom() {
-    echo "Running with custom parameters..."
-    python main_autoencoder.py --gin_config="./configs/base/vae_gan/base_train.gin" \
-        --gin_params "$@"
+    python main_autoencoder.py --gin_config "$TRAIN_CONFIG" --gin_params "$@"
 }
 
-# Hyperparameter sweep example
-train_sweep() {
-    echo "Running hyperparameter sweep..."
-    for seed in 1042 10042 100042; do
-        for latent_dim in 2 4 6 8 10 12; do
-            echo "============================================"
-            echo "Training with latent_dim=$latent_dim, seed=$seed"
-            echo "============================================"
-            python main_autoencoder.py --gin_config="./configs/base/vae_gan/base_train.gin" \
-                --gin_params \
-                "VAE_GAN.latent_dim=$latent_dim" \
-                "SEED=$seed" \
-                "main_autoencoder.log_dir_relative='pretrained_models/checkpoints_vae_gan_${seed}'"
-        done 
-    done
-}
-
-# Hyperparameter sweep example
-inference_sweep() {
-    for seed in 1042 10042 100042; do
-        for latent_dim in 2 4 6 8 10 12; do
-            echo "=============================================================="
-            echo "Running reconstructions sweep with latent_dim=$latent_dim, seed=$seed"
-            echo "=============================================================="
-            python main_autoencoder.py --gin_config="./configs/base/vae_gan/base_inference.gin" \
-            --gin_params \
-            "VAE_GAN.latent_dim=$latent_dim" \
-            "main_autoencoder.log_dir_relative='pretrained_models/checkpoints_vae_gan_${seed}/ld_${latent_dim}_fc_6_alfa_0.001_beta_0.001'"
-        done
-    done
-}
-
-# Show usage
 usage() {
-    echo "Usage: $0 {train|inference|train_sweep|inference_sweep|custom}"
+    echo "Usage: $0 {train|inference [run_dir]|train_latent_dims [seed]|inference_latent_dims [seed]|custom <gin_params>}"
     echo "Examples:"
-    echo "  $0 train                    # Full training"
-    echo "  $0 inference                # Inference only"
-    echo "  $0 train_sweep              # Hyperparameter sweep"
-    echo "  $0 inference_sweep          # Inference sweep over latent dimensions"
-    echo "  $0 custom --gin_params '@'  # Custom run with overrides"
+    echo "  $0 train                                   # d_zeta = 4, seed 42"
+    echo "  $0 inference                               # test-set reconstructions of checkpoints/vae_gan/ld_4_fc_6_gamma_0.001_beta_0.001_sd_42"
+    echo "  $0 inference path/to/run                   # test-set reconstructions of another run"
+    echo "  $0 train_latent_dims                       # d_zeta = 2, 4, ..., 12, seed 42"
+    echo "  $0 inference_latent_dims 43                # reconstructions of the seed-43 runs"
+    echo "  $0 custom 'VAE_GAN.latent_dim=8' 'SEED=1'"
 }
 
-# Main script logic
 case "$1" in
-    train)
-        train
-        ;;
-    inference)
-        inference
-        ;;
-    custom)
-        shift
-        custom "$@"
-        ;;
-    train_sweep)
-        train_sweep
-        ;;
-    inference_sweep)
-        inference_sweep
-        ;;
-    *)
-        usage
-        exit 1
-        ;;
+    train) train ;;
+    inference) shift; inference "$@" ;;
+    train_latent_dims) shift; train_latent_dims "$@" ;;
+    inference_latent_dims) shift; inference_latent_dims "$@" ;;
+    custom) shift; custom "$@" ;;
+    *) usage; exit 1 ;;
 esac

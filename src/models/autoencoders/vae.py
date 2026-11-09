@@ -1,3 +1,6 @@
+"""
+beta-VAE: convolutional encoder and decoder, and its loss (reconstruction + beta-weighted KL divergence).
+"""
 from typing import Callable
 import gin
 import jax
@@ -106,31 +109,17 @@ class VAE(nn.Module):
     def __name__(cls):
         return "Beta_Variational_AE"
 
-def vae_loss(vae_params, key, x,
-             vae_apply_fn, beta=1e-4):
-    """VAE loss function"""
-    
-    x_hat, mean, logvar = vae_apply_fn({'params': vae_params}, key, x)
-    
-    # Reconstruction loss
-    recon_loss = mse_loss(x, x_hat)
-    
-    # KL divergence loss
-    kl_loss = kl_divergence(mean, logvar)
-    
-    # Total VAE loss
-    loss = recon_loss + beta * kl_loss
-    
-    return loss, (recon_loss, kl_loss)
-
 def vae_loss(vae_params, key, x, vae_apply_fn, beta=1e-4, deterministic=False):
     """VAE loss function"""
     x_hat, mean, logvar = vae_apply_fn({'params': vae_params}, key, x,
                                        deterministic=deterministic)
+    
     # Reconstruction loss
     recon_loss = mse_loss(x, x_hat)
+
     # KL divergence loss
     kl_loss = kl_divergence(mean, logvar)
+    
     # Total VAE loss
     loss = recon_loss + beta * kl_loss
     return loss, (recon_loss, kl_loss)

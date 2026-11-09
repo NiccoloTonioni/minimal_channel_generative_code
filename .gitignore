@@ -19,19 +19,21 @@ venv/
 env/
 ENV/
 
-# User-generated training checkpoints (not the distributed pretrained_models/)
+# Training runs (checkpoints, reconstructions, rollouts) and outputs of the main scripts
 checkpoints/
-# Generated inference outputs inside pretrained_models
-pretrained_models/**/full_rollout_*/
-pretrained_models/**/reconstructions_*/
+results/
 
-# Dataset files
-src/data/dataset/
-src/data/datasets/
+# Dataset and generated array files
 *.npy
 *.npz
 *.h5
 *.hdf5
+# ...except the sample data distributed with the code
+!src/data/datasets/flow/train/fields_2d.npy
+!src/data/datasets/flow/test/fields_2d.npy
+!src/data/datasets/flow/params/*.npz
+!src/data/datasets/latents/**/*.npy
+!src/data/datasets/sensors/**/*.npy
 
 # TensorBoard logs
 runs/

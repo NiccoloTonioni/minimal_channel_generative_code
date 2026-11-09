@@ -1,3 +1,7 @@
+"""
+Inference with a trained beta-VAE-GAN: loading of the best checkpoint, encoding, decoding and
+reconstruction of the test set (save_vae_gan_reconstructions).
+"""
 import os
 from typing import Optional, Tuple
 # -- Flax

@@ -1,0 +1,24 @@
+# Base Configuration for the End-to-End Predictive Framework
+# Sensor-conditioned Transformer rollout over the test set, decoded into velocity fields by the beta-VAE-GAN.
+# The architectures must match those of the trained runs.
+include "configs/base/transformer/conditioned/adaLn_transformer_arch.gin"
+include "configs/base/vae_gan/model_architecture.gin"
+
+# =============================================================================
+# MAIN FUNCTION CONFIGURATION
+# =============================================================================
+# Directories paths (relative to the repository root)
+main_predictive_framework.working_directory = '.'   # repository root; run the scripts from here
+main_predictive_framework.latent_root_relative = 'src/data/datasets/latents/test'
+main_predictive_framework.sensor_root_relative = 'src/data/datasets/sensors/test'
+# Run directories of the trained models (contain best_model_params/); see the inference configs of the
+# conditioned Transformer and of the beta-VAE-GAN for the run names written by the training
+main_predictive_framework.transformer_dir_relative = 'path/to/transformer_run'     # EA* in the paper
+main_predictive_framework.autoencoder_dir_relative = 'path/to/vae_gan_run'         # d_zeta = 4 in the paper
+main_predictive_framework.output_dir_relative = 'results/predictive_framework'
+
+# Rollout length (None: until the end of the test set, as in the paper)
+main_predictive_framework.rollout_length = None
+# Decode an existing latent rollout instead of running the Transformer (None: run the Transformer)
+main_predictive_framework.predicted_latents_file = None
+main_predictive_framework.decoder_batch_size = 128

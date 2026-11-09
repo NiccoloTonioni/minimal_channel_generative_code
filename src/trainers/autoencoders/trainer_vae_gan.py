@@ -1,3 +1,7 @@
+"""
+Training loop of the beta-VAE-GAN (JAX SPMD): alternating generator / discriminator optimisation,
+scheduled beta and gamma weights, validation, checkpointing of the best model and TensorBoard logging.
+"""
 import os
 import numpy as np
 from typing import Any, Tuple
@@ -842,7 +846,7 @@ class TrainerModuleVAEGAN:
                           f'Recon: {eval_recon:.4f}, KL: {eval_kl:.4f}, Adv: {eval_adv:.4f}')
 
                 # Save to both checkpoint managers (async if enabled)
-                chckpt_loss = eval_recon + self.beta_end_value * eval_kl
+                chckpt_loss = eval_recon + 0.0001 * eval_kl
                 self._save_checkpoints(epoch_idx, chckpt_loss)
 
                 # Generate reconstructions for visualization

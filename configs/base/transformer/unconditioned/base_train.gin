@@ -1,6 +1,6 @@
-# Base Configuration for  VAE-GAN Training 
-# This file configures the training for VAE with adversarial loss
-include "configs/base/transformer/unconditioned/easy_transformer_arch.gin"
+# Base Configuration for Unconditioned Transformer Training
+# Latent dynamics model without sensor conditioning
+include "configs/base/transformer/unconditioned/transformer_arch.gin"
 
 # =============================================================================
 # RUN SEED (for randomness)
@@ -12,11 +12,11 @@ SEED = 42
 # =============================================================================
 main_transformer.train = True
 main_transformer.save_rollout = False
-main_transformer.model_type = 'easy_transformer'
-# Directories paths — set to the root of your local clone
-main_transformer.working_directory = '/home/ntonioni/Channel_Flow/MinimalChannel/2D_Publication'
+main_transformer.model_type = 'unconditioned_transformer'
+# Directories paths (relative to the repository root)
+main_transformer.working_directory = '.'   # repository root; run the scripts from here
 main_transformer.latent_root_relative = 'src/data/datasets/latents'
-main_transformer.log_dir_relative = 'pretrained_models/checkpoints_transformer/'
+main_transformer.log_dir_relative = 'checkpoints/transformer/'
 
 # =============================================================================
 # DATALOADER CONFIGURATION

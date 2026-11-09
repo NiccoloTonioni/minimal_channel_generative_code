@@ -1,3 +1,7 @@
+"""
+beta-VAE-GAN: convolutional encoder, decoder (generator) and discriminator, and the generator and
+discriminator losses (reconstruction + beta-weighted KL divergence + gamma-weighted adversarial term).
+"""
 from typing import Callable
 import gin
 import jax

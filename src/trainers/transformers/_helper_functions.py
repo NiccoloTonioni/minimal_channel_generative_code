@@ -1,3 +1,6 @@
+"""
+Optional curriculum learning on the sequence length for the Transformer training.
+"""
 import jax
 import jax.numpy as jnp
 

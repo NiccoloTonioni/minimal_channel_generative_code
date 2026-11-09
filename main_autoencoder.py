@@ -1,6 +1,26 @@
+"""
+Stage 1: training and inference of the beta-VAE and beta-VAE-GAN autoencoders.
+
+  1. Training (train=True): the autoencoder is trained on the snapshots of the first DNS run, split
+     randomly into training / validation (90% / 10%). Checkpoints, TensorBoard logs and the operative
+     config are written to <log_dir>/<run_name>, e.g. checkpoints/vae_gan/ld_4_fc_6_gamma_0.001_beta_0.001_sd_42.
+  2. Inference (save_reconstructions=True): the best checkpoint of a run reconstructs the test set.
+
+Output layout of the inference (consumed by main_postprocessing.py):
+  <run_dir>/reconstructions_epoch_<epoch>/all_reconstructions.npy    (N, 48, 24, 3), normalised as in Eq. (5)
+  <run_dir>/reconstructions_epoch_<epoch>/all_encoded_latents.npy    (N, 1, 1, d_zeta)
+
+The model is selected with main_autoencoder.use_vae_gan (True: beta-VAE-GAN, False: beta-VAE).
+
+Usage (from the repository root):
+  python main_autoencoder.py --gin_config configs/base/vae_gan/base_train.gin
+  python main_autoencoder.py --gin_config configs/base/vae_gan/base_inference.gin \
+      --gin_params "main_autoencoder.log_dir_relative='path/to/vae_gan_run'"
+"""
 import os
 import jax
 import gin
+from src.utils.gin_utils import parse_config_file
 from src.data.flow_dataloader import data_loader
 from src.models.autoencoders.vae import VAE
 from src.models.autoencoders.vae_gan import VAE_GAN, Discriminator
@@ -12,9 +32,9 @@ import src.inference.autoencoders.inference_vae as inference_vae
 @gin.configurable
 def main_autoencoder(train: bool,
          save_reconstructions: bool,
-         working_directory: str,
-         data_root_relative='src/data/dataset/flow/scaled_data',
-         log_dir_relative='pretrained_models/checkpoints_vae/',
+         working_directory: str = '.',
+         data_root_relative='src/data/datasets/flow',
+         log_dir_relative='checkpoints/vae/',
          use_vae_gan: bool = False,):
     """
     Main function to set up and run VAE or VAE-GAN training with JAX SPMD.
@@ -27,7 +47,8 @@ def main_autoencoder(train: bool,
         log_dir_relative: Relative path to log directory
         use_vae_gan: If True, use VAE-GAN training; if False, use standard VAE
     """
-    # Set working directory
+    # Set working directory (resolved to an absolute path, as required by orbax)
+    working_directory = os.path.abspath(working_directory)
     os.chdir(working_directory)
     
     # Construct absolute paths
@@ -37,7 +58,7 @@ def main_autoencoder(train: bool,
     # Print available devices and configuration
     if jax.process_index() == 0:
         print("=" * 50)
-        print('Available GPUs:', jax.devices('gpu'))
+        print('Available devices:', jax.devices())
         print(f'Total devices: {jax.device_count()}')
         print(f'Current process: {jax.process_index()}')
         print(f'Training mode: {"VAE-GAN" if use_vae_gan else "VAE"}')
@@ -133,7 +154,7 @@ if __name__ == "__main__":
     # Parse gin configuration files
     gin_files = args.gin_config.split(',')
     for gin_file in gin_files:
-        gin.parse_config_file(gin_file.strip())
+        parse_config_file(gin_file.strip())
     
     # Parse gin parameters from command line
     if args.gin_params:

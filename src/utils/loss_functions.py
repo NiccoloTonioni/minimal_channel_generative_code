@@ -1,3 +1,6 @@
+"""
+Reconstruction and regularisation losses of the autoencoders (MSE, KL divergence) and auxiliary metrics.
+"""
 # This script contains all the functions used to define the autoencoder losses.
 # -- jax Numpy
 import numpy as np

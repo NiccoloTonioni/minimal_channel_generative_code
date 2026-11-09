@@ -1,0 +1,62 @@
+{
+  "n_sensors": 3,
+  "reference_point": {
+    "ref_x": 24,
+    "ref_z": 12,
+    "ref_x_plus": 191.6255494165544,
+    "ref_z_plus": 58.66080524466593
+  },
+  "sensors": [
+    {
+      "name": "zero",
+      "directory": "sensor_zero",
+      "grid_idx": [
+        24,
+        19
+      ],
+      "physical_position": [
+        191.6255494165544,
+        91.51096771775379
+      ],
+      "separation": [
+        0.0,
+        32.85016247308786
+      ],
+      "correlation": -0.04432483322147628
+    },
+    {
+      "name": "origin",
+      "directory": "sensor_origin",
+      "grid_idx": [
+        24,
+        12
+      ],
+      "physical_position": [
+        191.6255494165544,
+        58.66080524466593
+      ],
+      "separation": [
+        0.0,
+        0.0
+      ],
+      "correlation": 1.0
+    },
+    {
+      "name": "minimum",
+      "directory": "sensor_minimum",
+      "grid_idx": [
+        24,
+        0
+      ],
+      "physical_position": [
+        191.6255494165544,
+        2.346440176649133
+      ],
+      "separation": [
+        0.0,
+        -56.31456423957919
+      ],
+      "correlation": -0.37900697329563915
+    }
+  ]
+}

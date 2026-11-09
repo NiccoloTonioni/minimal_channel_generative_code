@@ -1,0 +1,12 @@
+{
+    "shape": [
+        10,
+        48,
+        24,
+        3
+    ],
+    "grid_size": "48 x 24",
+    "samples": 10,
+    "dtype": "float32",
+    "note": "Sample subset: first 10 snapshots of the full train split. The full dataset is available separately."
+}
