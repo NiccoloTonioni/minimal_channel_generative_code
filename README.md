@@ -67,7 +67,7 @@ Training needs a GPU. Inference and post-processing also run on CPU.
 ## Data
 
 The full DNS dataset (two runs of ~17,000 snapshots of size 48 × 24 × 3, about 460 MB) is too large for this
-repository and is available at **[dataset link]**. The repository contains:
+repository and is available upon request. The repository contains:
 
 | Path | Content |
 |---|---|
