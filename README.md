@@ -176,13 +176,14 @@ All results except Table 3 and Figs. 8–9 need the full DNS test set.
 If you use this code, please cite:
 
 ```bibtex
-@article{tonioni2026hybrid,
+@article{tonioni2026minimal,
+  author  = {Tonioni, Niccol{\`o} and Agostini, Lionel and Sanchis-Agudo, Marcial and Umair, Mohammad and Kerherv{\'e}, Franck and Cordier, Laurent and Vinuesa, Ricardo},
   title   = {A Hybrid Generative Reduced-Order Model for the Minimal Flow Unit},
-  author  = {Tonioni, Niccol{\`o} and Agostini, Lionel and Sanchis-Agudo, Marcial and Umair, Mohammad and
-             Kerherv{\'e}, Franck and Cordier, Laurent and Vinuesa, Ricardo},
   journal = {International Journal of Heat and Fluid Flow},
+  volume  = {122},
+  pages   = {110784},
   year    = {2026},
-  doi     = {[DOI]}
+  doi     = {10.1016/j.ijheatfluidflow.2026.110784}
 }
 ```
 
