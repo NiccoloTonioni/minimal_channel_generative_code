@@ -4,8 +4,8 @@ JAX/Flax implementation of the two-stage generative framework described in:
 
 > **A Hybrid Generative Reduced-Order Model for the Minimal Flow Unit**  
 > N. Tonioni, L. Agostini, M. Sanchis-Agudo, M. Umair, F. Kerhervé, L. Cordier, R. Vinuesa  
-> *International Journal of Heat and Fluid Flow*, 2026  
-> [DOI / arXiv link]
+> *International Journal of Heat and Fluid Flow*, Vol. 122, Article 110784 (2026)  
+> [10.1016/j.ijheatfluidflow.2026.110784](https://doi.org/10.1016/j.ijheatfluidflow.2026.110784)
 
 A β-VAE-GAN compresses DNS snapshots of the wall-parallel plane at y<sup>+</sup> = 14 of a Minimal Flow Unit
 (Re<sub>τ</sub> = 200) into a four-dimensional latent space. A Transformer conditioned on three velocity probes
